@@ -11,19 +11,28 @@ library(shiny)
 
 # Define server logic required to draw a histogram
 shinyServer <- function(input, output){
-  output$contents <- renderTable({
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, it will be a data frame with 'name',
-    # 'size', 'type', and 'datapath' columns. The 'datapath'
-    # column will contain the local filenames where the data can
-    # be found.
-    inFile <- input$getFile
-    
-    if (is.null(inFile))
-      return(NULL)
-    print(inFile)
-    
-    read.csv(inFile$datapath, check.names = FALSE)
+  
+  
+  # Initialement, class(input$file1) = NULL
+  # Après chargement, class(input$file1) = data.frame
+  # avec les colonnes 'size', 'type', and 'datapath' columns. 
+  data <- reactive({
+    inFile <- input$file1
+    if (is.null(inFile)) return(NULL)
+    read.csv(inFile$datapath, header = TRUE)
   })
+  
+  tabStats <- reactive({
+    table.tmp <- as.data.frame(table(data()$Incident.Month))
+    colnames(table.tmp) <- c("Mois", "Frequence")
+    table.tmp
+  })
+  
+  output$stats <- renderTable({ tabStats() })
+  output$FreqMonth <- renderPlot({
+    barplot(tabStats()$Frequence,names.arg=tabStats()$Mois,xlab="Mois", ylab="Frequence")
+  })
+  output$contents <- renderDT(
+    data(), options = list(lengthChange = FALSE)  )
   
 }

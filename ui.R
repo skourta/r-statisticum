@@ -1,11 +1,3 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 library(shiny)
 library(DT)
@@ -14,24 +6,12 @@ options(shiny.maxRequestSize=100*1024^2)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins
-    sidebarLayout(
-        sidebarPanel(
-          fileInput("getFile", "Choose CSV File",
-                    accept = c(
-                      "text/csv",
-                      "text/comma-separated-values,text/plain",
-                      ".csv") 
-        ),
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-          tableOutput(outputId="contents")
-        )
-    )
+  # Bouton de recherche du fichier à charger
+  fileInput(inputId = "file1", label = "Choose CSV File",
+            accept = c("text/plain", ".csv")
+  ),
+  # Affichage des données
+  tableOutput(outputId = "stats"),
+  plotOutput(outputId = "FreqMonth"),
+  DTOutput("contents")
 ))
