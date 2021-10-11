@@ -33,6 +33,37 @@ shinyServer <- function(input, output){
     barplot(tabStats()$Frequence,names.arg=tabStats()$Mois,xlab="Mois", ylab="Frequence")
   })
   output$contents <- renderDT(
-    data(), options = list(lengthChange = FALSE)  )
+    data(), options = list(lengthChange = FALSE))
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  #====================================
+  # Flight Phase Study
+  flightPhase <- reactive({
+    table.tmp <- as.data.frame(table(data()$Flight.Phase))[-1,]
+    colnames(table.tmp) <- c("FlightPhase", "Frequence")
+    table.tmp
+  })
+  output$flightPhase <- renderPlot({
+    barplot(flightPhase()$Frequence,names.arg=flightPhase()$FlightPhase,xlab="FlightPhase", ylab="Frequence")
+  })
+  
+  #====================================
+  # Top 10 Species causing accidents
+  topSpecies <- reactive({
+    tmp <- as.data.frame(table(data()$Species.Name))[-1,]
+    colnames(tmp) <- c("Nom", "Frequence")
+    print(tmp)
+    tmp[order(tmp$Frequence, decreasing = TRUE),][c(1,2,3,4,5,6,7,8,9,10),]
+  })
+  output$topSpecies <- renderDT(
+    topSpecies(), options = list(lengthChange = FALSE))
 }

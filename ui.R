@@ -13,5 +13,27 @@ shinyUI(fluidPage(
   # Affichage des données
   tableOutput(outputId = "stats"),
   plotOutput(outputId = "FreqMonth"),
-  DTOutput("contents")
+  DTOutput("contents"),
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  #====================================
+  #Flight Phase Study
+  plotOutput(outputId = "flightPhase"),
+  
+  
+  #====================================
+  # Top 10 Species causing accidents
+  DTOutput("topSpecies"),
 ))
