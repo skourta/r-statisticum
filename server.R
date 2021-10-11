@@ -8,6 +8,8 @@
 #
 
 library(shiny)
+library(dplyr)    
+
 
 # Define server logic required to draw a histogram
 shinyServer <- function(input, output){
@@ -17,9 +19,10 @@ shinyServer <- function(input, output){
   # Après chargement, class(input$file1) = data.frame
   # avec les colonnes 'size', 'type', and 'datapath' columns. 
   data <- reactive({
-    inFile <- input$file1
-    if (is.null(inFile)) return(NULL)
-    read.csv(inFile$datapath, header = TRUE)
+    #inFile <- input$file1
+    #if (is.null(inFile)) return(NULL)
+    #read.csv(inFile$datapath, header = TRUE)
+    read.csv("./dataset/Banking_churn_prediction.csv", header = TRUE)
   })
   
   tabStats <- reactive({
@@ -61,9 +64,37 @@ shinyServer <- function(input, output){
   topSpecies <- reactive({
     tmp <- as.data.frame(table(data()$Species.Name))[-1,]
     colnames(tmp) <- c("Nom", "Frequence")
-    print(tmp)
-    tmp[order(tmp$Frequence, decreasing = TRUE),][c(1,2,3,4,5,6,7,8,9,10),]
+    tmp[order(tmp$Frequence, decreasing = TRUE),]#[c(1,2,3,4,5,6,7,8,9,10),]
   })
   output$topSpecies <- renderDT(
     topSpecies(), options = list(lengthChange = FALSE))
+  
+  
+  
+  
+  
+  
+  
+  #======================================
+  #BIVAR
+  
+  #Cor Matrix
+  
+  
+  #Species and Height
+  speciesHeight <- reactive({
+    tmp <- topSpecies()[c(1,2,3,4,5),]
+    fullData <- data()
+    filteredData <- subset(fullData, Species.Name %in% tmp$Nom)
+    filteredData
+  })
+  
+  output$speciesHeightStats <-renderPlot({
+    outliers <- boxplot(speciesHeight()$Height ~ speciesHeight()$Species.Name, plot=FALSE)$out
+    noOutliers <- speciesHeight()[-which(speciesHeight()$Height %in% outliers),]
+    boxplot(speciesHeight()$Height ~ speciesHeight()$Species.Name , col="grey",
+            xlab = "Modalités", ylab = "Mesures")
+  })
 }
+
+

@@ -36,4 +36,15 @@ shinyUI(fluidPage(
   #====================================
   # Top 10 Species causing accidents
   DTOutput("topSpecies"),
+  
+  
+  #====================================
+  # BIVAR
+  
+  #Cor Matrix
+  plotOutput("corM"),
+  
+  #Species and Height
+  plotOutput(outputId = "speciesHeightStats"),
+  
 ))
