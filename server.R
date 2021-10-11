@@ -22,7 +22,7 @@ shinyServer <- function(input, output){
     #inFile <- input$file1
     #if (is.null(inFile)) return(NULL)
     #read.csv(inFile$datapath, header = TRUE)
-    read.csv("./dataset/Banking_churn_prediction.csv", header = TRUE)
+    read.csv("./dataset/database.csv", header = TRUE)
   })
   
   tabStats <- reactive({
