@@ -170,7 +170,7 @@ function(input, output, session) {
               plot.title = element_text("size=11")
             ) +
             ggtitle(paste("Boite à moustache: ", locaVar1, "en fontion de ", locaVar2)) +
-            labs(x=locaVar2, y=locaVar1, fill=locaVar1) 
+            labs(x=locaVar1, y=locaVar2, fill=locaVar1) 
         )
       }
       if(types == "cc"){
