@@ -16,7 +16,8 @@ dashboardPage(
                 box(
                   width=12,
                   title = "Univariate",
-                  uiOutput("variableUni")
+                  uiOutput("variableUni"),
+                  checkboxInput("uniCateg", "Variable qualitative")
                 ),
               ),
               fluidRow(
@@ -35,7 +36,15 @@ dashboardPage(
                   title = "Bivariate",
                   uiOutput("variableBi1"),
                   uiOutput("variableBi2")
-                ),)
+                ),),
+              fluidRow(
+                column(width = 12,
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("Plots", plotOutput("plotBi")),
+                                   tabPanel("Summary", DTOutput("summaryBi")),
+                                   tabPanel("Table", DTOutput("tableBi"))
+                       ))
+              )
               
       )
     ),
