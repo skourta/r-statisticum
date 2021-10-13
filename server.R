@@ -1,6 +1,12 @@
+library(ggplot2)
+library(hrbrthemes)
+library(viridis)
+
 function(input, output, session) { 
   set.seed(122)
   histdata <- rnorm(500)
+  
+  mainColor <- "#69b3a2"
   
   isCategorical <- function(varName){
     type<- reactive({
@@ -33,7 +39,6 @@ function(input, output, session) {
   observeEvent(input$uniCateg,{
     
     output$plot1 <- renderPlot({
-      print(summary(data()[,input$variableUni]))
       if(isCategorical(input$variableUni) | input$uniCateg){
         categData <- as.data.frame(table(data()[, input$variableUni]))
         
@@ -56,7 +61,6 @@ function(input, output, session) {
     })
     
     output$summary <- renderDT({
-      print(summary(data()[,input$variableUni]))
       if(isCategorical(input$variableUni) | input$uniCateg){
         categData <- as.data.frame(table(data()[, input$variableUni]))
         colnames(categData) <- c("Modalités", "Effectif")
@@ -77,14 +81,157 @@ function(input, output, session) {
   
   
   output$variableBi1 <- renderUI({
-    selectInput("variable1","Variable 1: ", colnames(data()))
+    selectInput("contentVar1","Variable 1: ", colnames(data()))
   })
   output$variableBi2 <- renderUI({
-    selectInput("variable2","Variable 2: ", colnames(data()))
+    selectInput("contentVar2","Variable 2: ", colnames(data()))
   })
   
   
   output$table <- renderDT(
     data()
   )
+  
+  
+  
+  variableTypes <- function(var1, var2){
+    typeVar1 <- isCategorical(var1)
+    typeVar2 <- isCategorical(var2)
+    if (input$var1Bi){
+      if (input$var2Bi){
+        return("cc")
+      }else{
+        return("cq")
+      }
+    }else{
+      if (input$var2Bi){
+        return("qc")
+      }else{
+        return("qq")
+      }
+    }
   }
+  
+  
+  
+  
+  
+  #======================================
+  # BIVARIATE
+  
+  observeEvent(input$contentVar1, {
+    updateCheckboxInput(session, "var1Bi", value = isCategorical(input$contentVar1))
+  })
+  
+  observeEvent(input$contentVar2, {
+    updateCheckboxInput(session, "var2Bi", value = isCategorical(input$contentVar2))
+  })
+  
+  observeEvent(input$var1Bi,{
+    renderPlots()
+  })
+  
+  observeEvent(input$var2Bi,{
+    renderPlots()
+  })
+  
+  renderPlots <- reactive({
+    types <- variableTypes(input$contentVar1, input$contentVar2)
+    output$plot1Bi <- renderPlot({
+      if(types == "qq"){
+        correlation = cor(data()[,input$contentVar1], data()[, input$contentVar2])
+        if(abs(correlation) > 0.7){
+          return(
+            ggplot(data(), aes(x=data()[,input$contentVar1], y=data()[,input$contentVar2]), ) + 
+              labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor) + stat_smooth(method = lm)
+          )
+        }else{
+          return(
+            ggplot(data(), aes(x=data()[,input$contentVar1], y=data()[,input$contentVar2]), ) + 
+              labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor)
+          )
+        }
+        
+      }
+      if(types == "qc" | types == "cq"){
+        if(types == "qc"){
+          locaVar1 = input$contentVar2
+          locaVar2 = input$contentVar1
+        }else{
+          locaVar1 = input$contentVar1
+          locaVar2 = input$contentVar2
+        }
+        return( 
+          ggplot(data(), aes(x=data()[,locaVar1], y=data()[,locaVar2], fill=data()[,locaVar1])) +
+            geom_boxplot() +
+            scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+            geom_jitter(color="black", size=0.4, alpha=0.2) +
+            theme(
+              plot.title = element_text("size=11")
+            ) +
+            ggtitle(paste("Boite à moustache: ", locaVar1, "en fontion de ", locaVar2)) +
+            labs(x=locaVar2, y=locaVar1, fill=locaVar1) 
+        )
+      }
+      if(types == "cc"){
+        return(
+          ggplot(data(), aes(x = data()[,input$contentVar1], fill = data()[,input$contentVar2])) + geom_bar(position = "dodge")+
+            labs(x=input$contentVar1, fill=input$contentVar2)
+        )
+      }
+    })
+    
+    output$summaryBi <- renderTable({
+      
+      if(types == "qq"){
+        # Définition des colonnes choisies 
+        var.names <- c(input$contentVar1, input$contentVar2)
+        # Initialisation de la table
+        caract.df <- data.frame()
+        # Pour chaque colonne, calcul de min, max, mean et ecart-type
+        for(strCol in var.names){
+          caract.vect <- c(min(data()[, strCol]), max(data()[,strCol]), 
+                           mean(data()[,strCol]), sqrt(var(data()[,strCol])))
+          caract.df <- rbind.data.frame(caract.df, caract.vect)
+        }
+        # Définition des row/colnames
+        rownames(caract.df) <- var.names
+        colnames(caract.df) <- c("Minimum", "Maximum", "Moyenne", "Ecart-type")
+        # Renvoyer la table
+        return(caract.df)
+      }
+      if(types == "qc" | types == "cq"){
+        if(types == "qc"){
+          locaVar1 = input$contentVar2
+          locaVar2 = input$contentVar1
+        }else{
+          locaVar1 = input$contentVar1
+          locaVar2 = input$contentVar2
+        }
+        # Initialisation de la table
+        statsSummary <- data.frame()
+        # Pour chaque modalité, calcul de mean et écart-type
+        moyenne <- tapply(data()[,locaVar2] , data()[,locaVar1], mean)
+        statsSummary <- rbind.data.frame(statsSummary, t(moyenne))
+        standardDeriv = tapply(data()[,locaVar2] , data()[,locaVar1], sd)
+        statsSummary <- rbind.data.frame(statsSummary, t(standardDeriv))
+        rownames(statsSummary) <- c("Moyenne", "Ecart Type")
+        # Renvoyer la table
+        return(statsSummary) 
+      }
+    }, rownames = TRUE, digits = 2)
+    
+    output$correlation <- renderText({
+      if(types == "qq"){
+        paste("La correlation entre",input$contentVar1, "et", input$contentVar2,"est:", cor(data()[,input$contentVar1],data()[,input$contentVar2]), sep = " ")
+      }
+      
+    })
+  })
+  
+  
+  output$tableBi <- renderDT(
+    data()
+  )
+  
+}
