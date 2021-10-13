@@ -1,4 +1,5 @@
 library(shinydashboard)
+library(DT)
 
 dashboardPage(
   dashboardHeader(),
@@ -22,8 +23,8 @@ dashboardPage(
                 column(width = 12,
                        tabsetPanel(type = "tabs",
                                    tabPanel("Plots", plotOutput("plot1")),
-                                   tabPanel("Summary", verbatimTextOutput("summary")),
-                                   tabPanel("Table", tableOutput("table"))
+                                   tabPanel("Summary", DTOutput("summary")),
+                                   tabPanel("Table", DTOutput("table"))
                        ))
                 )
       ),

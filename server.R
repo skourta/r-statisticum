@@ -2,6 +2,18 @@ function(input, output) {
   set.seed(122)
   histdata <- rnorm(500)
   
+  isCategorical <- function(varName){
+    type<- reactive({
+      class(data()[, varName])
+    })()
+    
+    if(type == "character"){
+      return(TRUE)
+    }else{
+      return(FALSE)
+    }
+  }
+  
   data <- reactive({
     #inFile <- input$file1
     #if (is.null(inFile)) return(NULL)
@@ -21,8 +33,48 @@ function(input, output) {
   })
   
   output$plot1 <- renderPlot({
-    print(class(data()[,input$variableUni]))
-        plot(data()[, input$variableUni])
+        print(summary(data()[,input$variableUni]))
+        if(isCategorical(input$variableUni)){
+          categData <- as.data.frame(table(data()[, input$variableUni]))
+
+          return(
+            barplot(categData$Freq, names.arg=categData$Var1,col = "orange",
+                    border = "brown",main=paste("Diagramme à barres:  ", input$variableUni))
+          )
+        }else{
+          return(
+            boxplot(data()[, input$variableUni],
+                    ylab = input$variableUni,
+                    col = "orange",
+                    border = "brown",
+                    horizontal = TRUE,
+                    notch = TRUE,
+                    main=paste("Boite à moustache: ", input$variableUni)) 
+          )
+        }
+
+  })
+  
+  output$summary <- renderDT({
+    print(summary(data()[,input$variableUni]))
+    if(isCategorical(input$variableUni)){
+      categData <- as.data.frame(table(data()[, input$variableUni]))
+      colnames(categData) <- c("Modalités", "Effectif")
+      return(
+        categData
+      )
+    }else{
+      result <- data.frame(unclass(summary(data()[, input$variableUni])), check.names = FALSE, stringsAsFactors = FALSE)
+      colnames(result) <- c("Valeur")
+      return(
+        result
+      )
+    }
     
   })
+  
+  
+  output$table <- renderDT(
+    data()
+  )
   }
