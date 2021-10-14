@@ -1,100 +1,237 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+library(ggplot2)
+library(hrbrthemes)
+library(viridis)
 
-library(shiny)
-library(dplyr)    
-
-
-# Define server logic required to draw a histogram
-shinyServer <- function(input, output){
+function(input, output, session) { 
+  set.seed(122)
+  histdata <- rnorm(500)
   
+  mainColor <- "#69b3a2"
   
-  # Initialement, class(input$file1) = NULL
-  # Après chargement, class(input$file1) = data.frame
-  # avec les colonnes 'size', 'type', and 'datapath' columns. 
+  isCategorical <- function(varName){
+    type<- reactive({
+      class(data()[, varName])
+    })()
+    
+    if(type == "character"){
+      return(TRUE)
+    }else{
+      return(FALSE)
+    }
+  }
+  
   data <- reactive({
     #inFile <- input$file1
     #if (is.null(inFile)) return(NULL)
     #read.csv(inFile$datapath, header = TRUE)
-    read.csv("./dataset/database.csv", header = TRUE)
+    tmp <- read.csv("./dataset/Banking_churn_prediction.csv", header = TRUE)
+    tmp[Reduce(`&`, lapply(tmp, function(x) !(is.na(x)|x==""))),]
   })
   
-  tabStats <- reactive({
-    table.tmp <- as.data.frame(table(data()$Incident.Month))
-    colnames(table.tmp) <- c("Mois", "Frequence")
-    table.tmp
+  output$variableUni <- renderUI({
+    selectInput("variableUni","Variable: ", colnames(data()))
   })
   
-  output$stats <- renderTable({ tabStats() })
-  output$FreqMonth <- renderPlot({
-    barplot(tabStats()$Frequence,names.arg=tabStats()$Mois,xlab="Mois", ylab="Frequence")
-  })
-  output$contents <- renderDT(
-    data(), options = list(lengthChange = FALSE))
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  #====================================
-  # Flight Phase Study
-  flightPhase <- reactive({
-    table.tmp <- as.data.frame(table(data()$Flight.Phase))[-1,]
-    colnames(table.tmp) <- c("FlightPhase", "Frequence")
-    table.tmp
-  })
-  output$flightPhase <- renderPlot({
-    barplot(flightPhase()$Frequence,names.arg=flightPhase()$FlightPhase,xlab="FlightPhase", ylab="Frequence")
+  observeEvent(input$variableUni, {
+    updateCheckboxInput(session, "uniCateg", value = isCategorical(input$variableUni))
   })
   
-  #====================================
-  # Top 10 Species causing accidents
-  topSpecies <- reactive({
-    tmp <- as.data.frame(table(data()$Species.Name))[-1,]
-    colnames(tmp) <- c("Nom", "Frequence")
-    tmp[order(tmp$Frequence, decreasing = TRUE),]#[c(1,2,3,4,5,6,7,8,9,10),]
+  observeEvent(input$uniCateg,{
+    
+    output$plot1 <- renderPlot({
+      if(isCategorical(input$variableUni) | input$uniCateg){
+        categData <- as.data.frame(table(data()[, input$variableUni]))
+        
+        return(
+          barplot(categData$Freq, names.arg=categData$Var1,col = "orange",
+                  border = "brown",main=paste("Diagramme à barres:  ", input$variableUni))
+        )
+      }else{
+        return(
+          boxplot(data()[, input$variableUni],
+                  ylab = input$variableUni,
+                  col = "orange",
+                  border = "brown",
+                  horizontal = TRUE,
+                  notch = TRUE,
+                  main=paste("Boite à moustache: ", input$variableUni)) 
+        )
+      }
+      
+    })
+    
+    output$summary <- renderDT({
+      if(isCategorical(input$variableUni) | input$uniCateg){
+        categData <- as.data.frame(table(data()[, input$variableUni]))
+        colnames(categData) <- c("Modalités", "Effectif")
+        return(
+          categData
+        )
+      }else{
+        result <- data.frame(unclass(summary(data()[, input$variableUni])), check.names = FALSE, stringsAsFactors = FALSE)
+        colnames(result) <- c("Valeur")
+        return(
+          result
+        )
+      }
+      
+    })
+    
   })
-  output$topSpecies <- renderDT(
-    topSpecies(), options = list(lengthChange = FALSE))
   
   
+  output$variableBi1 <- renderUI({
+    selectInput("contentVar1","Variable 1: ", colnames(data()))
+  })
+  output$variableBi2 <- renderUI({
+    selectInput("contentVar2","Variable 2: ", colnames(data()))
+  })
+  
+  
+  output$table <- renderDT(
+    data()
+  )
+  
+  
+  
+  variableTypes <- function(var1, var2){
+    typeVar1 <- isCategorical(var1)
+    typeVar2 <- isCategorical(var2)
+    if (input$var1Bi){
+      if (input$var2Bi){
+        return("cc")
+      }else{
+        return("cq")
+      }
+    }else{
+      if (input$var2Bi){
+        return("qc")
+      }else{
+        return("qq")
+      }
+    }
+  }
   
   
   
   
   
   #======================================
-  #BIVAR
+  # BIVARIATE
   
-  #Cor Matrix
-  
-  
-  #Species and Height
-  speciesHeight <- reactive({
-    tmp <- topSpecies()[c(1,2,3,4,5),]
-    fullData <- data()
-    filteredData <- subset(fullData, Species.Name %in% tmp$Nom)
-    filteredData
+  observeEvent(input$contentVar1, {
+    updateCheckboxInput(session, "var1Bi", value = isCategorical(input$contentVar1))
   })
   
-  output$speciesHeightStats <-renderPlot({
-    outliers <- boxplot(speciesHeight()$Height ~ speciesHeight()$Species.Name, plot=FALSE)$out
-    noOutliers <- speciesHeight()[-which(speciesHeight()$Height %in% outliers),]
-    boxplot(speciesHeight()$Height ~ speciesHeight()$Species.Name , col="grey",
-            xlab = "Modalités", ylab = "Mesures")
+  observeEvent(input$contentVar2, {
+    updateCheckboxInput(session, "var2Bi", value = isCategorical(input$contentVar2))
   })
+  
+  observeEvent(input$var1Bi,{
+    renderPlots()
+  })
+  
+  observeEvent(input$var2Bi,{
+    renderPlots()
+  })
+  
+  renderPlots <- reactive({
+    types <- variableTypes(input$contentVar1, input$contentVar2)
+    output$plot1Bi <- renderPlot({
+      if(types == "qq"){
+        correlation = cor(data()[,input$contentVar1], data()[, input$contentVar2])
+        if(abs(correlation) > 0.7){
+          return(
+            ggplot(data(), aes(x=data()[,input$contentVar1], y=data()[,input$contentVar2]), ) + 
+              labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor) + stat_smooth(method = lm)
+          )
+        }else{
+          return(
+            ggplot(data(), aes(x=data()[,input$contentVar1], y=data()[,input$contentVar2]), ) + 
+              labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor)
+          )
+        }
+        
+      }
+      if(types == "qc" | types == "cq"){
+        if(types == "qc"){
+          locaVar1 = input$contentVar2
+          locaVar2 = input$contentVar1
+        }else{
+          locaVar1 = input$contentVar1
+          locaVar2 = input$contentVar2
+        }
+        return( 
+          ggplot(data(), aes(x=data()[,locaVar1], y=data()[,locaVar2], fill=data()[,locaVar1])) +
+            geom_boxplot() +
+            scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+            geom_jitter(color="black", size=0.4, alpha=0.2) +
+            theme(
+              plot.title = element_text("size=11")
+            ) +
+            ggtitle(paste("Boite à moustache: ", locaVar1, "en fontion de ", locaVar2)) +
+            labs(x=locaVar1, y=locaVar2, fill=locaVar1) 
+        )
+      }
+      if(types == "cc"){
+        return(
+          ggplot(data(), aes(x = data()[,input$contentVar1], fill = data()[,input$contentVar2])) + geom_bar(position = "dodge")+
+            labs(x=input$contentVar1, fill=input$contentVar2)
+        )
+      }
+    })
+    
+    output$summaryBi <- renderTable({
+      
+      if(types == "qq"){
+        # Définition des colonnes choisies 
+        var.names <- c(input$contentVar1, input$contentVar2)
+        # Initialisation de la table
+        caract.df <- data.frame()
+        # Pour chaque colonne, calcul de min, max, mean et ecart-type
+        for(strCol in var.names){
+          caract.vect <- c(min(data()[, strCol]), max(data()[,strCol]), 
+                           mean(data()[,strCol]), sqrt(var(data()[,strCol])))
+          caract.df <- rbind.data.frame(caract.df, caract.vect)
+        }
+        # Définition des row/colnames
+        rownames(caract.df) <- var.names
+        colnames(caract.df) <- c("Minimum", "Maximum", "Moyenne", "Ecart-type")
+        # Renvoyer la table
+        return(caract.df)
+      }
+      if(types == "qc" | types == "cq"){
+        if(types == "qc"){
+          locaVar1 = input$contentVar2
+          locaVar2 = input$contentVar1
+        }else{
+          locaVar1 = input$contentVar1
+          locaVar2 = input$contentVar2
+        }
+        # Initialisation de la table
+        statsSummary <- data.frame()
+        # Pour chaque modalité, calcul de mean et écart-type
+        moyenne <- tapply(data()[,locaVar2] , data()[,locaVar1], mean)
+        statsSummary <- rbind.data.frame(statsSummary, t(moyenne))
+        standardDeriv = tapply(data()[,locaVar2] , data()[,locaVar1], sd)
+        statsSummary <- rbind.data.frame(statsSummary, t(standardDeriv))
+        rownames(statsSummary) <- c("Moyenne", "Ecart Type")
+        # Renvoyer la table
+        return(statsSummary) 
+      }
+    }, rownames = TRUE, digits = 2)
+    
+    output$correlation <- renderText({
+      if(types == "qq"){
+        paste("La correlation entre",input$contentVar1, "et", input$contentVar2,"est:", cor(data()[,input$contentVar1],data()[,input$contentVar2]), sep = " ")
+      }
+      
+    })
+  })
+  
+  
+  output$tableBi <- renderDT(
+    data()
+  )
+  
 }
-
-
