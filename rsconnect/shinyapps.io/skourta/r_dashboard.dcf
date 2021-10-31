@@ -1,0 +1,13 @@
+name: r_dashboard
+title: r_dashboard
+username:
+account: skourta
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4868835
+bundleId: 5137637
+url: https://skourta.shinyapps.io/r_dashboard/
+when: 1634199567.11979
+lastSyncTime: 1634199567.11982
+asMultiple: FALSE
+asStatic: FALSE

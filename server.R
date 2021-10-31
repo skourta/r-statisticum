@@ -1,6 +1,8 @@
 library(ggplot2)
 library(hrbrthemes)
 library(viridis)
+library(ggcorrplot)
+
 
 function(input, output, session) { 
   set.seed(122)
@@ -137,6 +139,18 @@ function(input, output, session) {
   
   renderPlots <- reactive({
     types <- variableTypes(input$contentVar1, input$contentVar2)
+    
+    output$plot1BiLog <- renderPlot({
+      if(types == "qq"){
+      xdata = log(data()[,input$contentVar1])
+      ydata = log(data()[,input$contentVar2])
+      ggplot(data(), aes(x=xdata, y=ydata), ) + ggtitle("Appliquons la fonction log pour eliminer l'effet des valeurs aberrantes") +
+        labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor) + stat_smooth(method = lm)
+      }else{
+        return(NULL)
+      }
+      })
+    
     output$plot1Bi <- renderPlot({
       if(types == "qq"){
         correlation = cor(data()[,input$contentVar1], data()[, input$contentVar2])
@@ -151,6 +165,8 @@ function(input, output, session) {
               labs(x = input$contentVar1, y= input$contentVar2) + geom_point(size=1, color=mainColor)
           )
         }
+        
+        
         
       }
       if(types == "qc" | types == "cq"){
@@ -233,5 +249,58 @@ function(input, output, session) {
   output$tableBi <- renderDT(
     data()
   )
+  
+  
+  
+  output$corrType <- renderUI({
+    selectInput("corrTypeValue","Type de correlation: ", c("Pearson", "Spearman"))
+  })
+  
+  output$heatMap <- renderPlot({
+    print(input$corrTypeValue)
+    num_cols = unlist(lapply(data(), is.numeric))
+    numerical_data = data()[,num_cols]
+    if(input$corrTypeValue == "Pearson"){
+      corr <- round(cor(numerical_data, method = "pearson"), 1)
+      return(ggcorrplot(corr))
+    }
+    if(input$corrTypeValue == "Spearman"){
+      corr <- round(cor(numerical_data, method = "spearman"), 1)
+      return(ggcorrplot(corr))
+    }
+    print(input$corrTypeValue)
+    
+    
+  })
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  #Prediction
+  output$predictionVariablesUI <- renderUI({
+    selectInput("predictionVariables","Les variables explicatives: ", multiple = T, colnames(data()))
+  })
+  
+  output$targetVariableUI <- renderUI({
+    selectInput("targetVariable","La variable cible: ", colnames(data()))
+  })
+  
+  observeEvent(input$targetVariable, {
+    updateCheckboxInput(session, "targetVar", value = isCategorical(input$targetVariable))
+  })
+  
   
 }

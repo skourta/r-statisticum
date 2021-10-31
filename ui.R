@@ -6,12 +6,15 @@ dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Univariate Study", tabName = "univariate", icon = icon("dice-one")),
-      menuItem("Bivariate Study", tabName = "bivariate", icon = icon("dice-two"))
+      menuItem("Bivariate Study", tabName = "bivariate", icon = icon("dice-two")),
+      menuItem("Prediction", tabName = "prediction", icon = icon("dice-three")),
+      menuItem("General Study", tabName = "general", icon = icon("dice-four"))
     )
   ),
   dashboardBody(
     tabItems(
-      tabItem(tabName = "univariate",
+      tabItem(
+        tabName = "univariate",
               fluidRow(
                 box(
                   width=12,
@@ -45,6 +48,7 @@ dashboardPage(
                                    tabPanel("Plots", column(
                                      width=12,
                                      plotOutput("plot1Bi"),
+                                     plotOutput("plot1BiLog"),
                                    )),
                                    tabPanel("Summary", column(
                                      width=12,
@@ -55,6 +59,50 @@ dashboardPage(
                        ))
               )
               
+      ),
+      
+      tabItem(tabName = "prediction",
+              fluidRow(
+                box(
+                  width=12,
+                  title = "Prediction",
+                  uiOutput("predictionVariablesUI"),
+                  uiOutput("targetVariableUI"),
+                  checkboxInput("targetVar", "La variable cible est qualitative"),
+                ),),
+              fluidRow(
+                column(width = 12,
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("Information du model", column(
+                                     
+                                     width=12,
+                                     
+                                   )),
+                                   tabPanel("Summary", column(
+                                     width=12,
+                                     
+                                   )),
+                                   tabPanel("Table", )
+                       ))
+              )
+              
+      ),
+      tabItem(
+        tabName = "general",
+        fluidRow(
+          box(
+            width=12,
+            title = "General Study",
+          ),
+        ),
+        fluidRow(
+          column(width = 12,
+                 tabsetPanel(type = "tabs",
+                             tabPanel("Correlation Heat Map", 
+                                      uiOutput("corrType"),
+                                      plotOutput("heatMap")),
+                 ))
+        )
       )
     ),
     
