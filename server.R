@@ -2,6 +2,8 @@ library(ggplot2)
 library(hrbrthemes)
 library(viridis)
 library(ggcorrplot)
+library(rpart)
+library(rpart.plot)
 
 
 function(input, output, session) { 
@@ -23,10 +25,11 @@ function(input, output, session) {
   }
   
   data <- reactive({
-    #inFile <- input$file1
-    #if (is.null(inFile)) return(NULL)
-    #read.csv(inFile$datapath, header = TRUE)
-    tmp <- read.csv("./dataset/Banking_churn_prediction.csv", header = TRUE)
+    inFile <- input$getFile
+    
+    if (is.null(inFile))
+      return(NULL)
+    tmp <- read.csv(inFile$datapath, header = input$header, check.names = FALSE)
     tmp[Reduce(`&`, lapply(tmp, function(x) !(is.na(x)|x==""))),]
   })
   
@@ -257,7 +260,6 @@ function(input, output, session) {
   })
   
   output$heatMap <- renderPlot({
-    print(input$corrTypeValue)
     num_cols = unlist(lapply(data(), is.numeric))
     numerical_data = data()[,num_cols]
     if(input$corrTypeValue == "Pearson"){
@@ -268,28 +270,36 @@ function(input, output, session) {
       corr <- round(cor(numerical_data, method = "spearman"), 1)
       return(ggcorrplot(corr))
     }
-    print(input$corrTypeValue)
-    
     
   })
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   #Prediction
+  split_data <- reactive({
+    cleaned_data = clean_data()
+    index <- createDataPartition(cleaned_data$churn, p = 0.7, list = FALSE)
+    train_data <- cleaned_data[index, ]
+    test_data  <- cleaned_data[-index, ]
+    combo <- list(train = train_data, test = test_data)
+    combo
+  })
+  
+  createModelReact <- reactive({
+    ref <- reformulate(names(data()[,c(input$predictionVariables)]), input$targetVariable)
+    treemodel = rpart(ref, data=data(), control = rpart.control(minsplit = 5, cp = 0.01))
+    treemodel
+  })
+  
+  createRegModel <- reactive({
+    ref <- reformulate(names(data()[,c(input$predictionVariables)]), input$targetVariable)
+    if (isCategorical(input$targetVariable) | input$targetVar){
+      return(glm(ref, data = data(), family = binomial))
+    }
+    else{
+      return(lm(ref, data = data()))
+    }
+  })
+  
   output$predictionVariablesUI <- renderUI({
     selectInput("predictionVariables","Les variables explicatives: ", multiple = T, colnames(data()))
   })
@@ -302,5 +312,49 @@ function(input, output, session) {
     updateCheckboxInput(session, "targetVar", value = isCategorical(input$targetVariable))
   })
   
+  observeEvent(input$learningButton, {
+    output$treePlot <- renderPlot({
+      varTree <- createModelReact()
+      rpart.plot(varTree)
+    })
+    
+    output$treeText <- renderPrint({
+      summary(createModelReact())
+    })
+    
+    output$regText <- renderPrint({
+      summary(createRegModel())
+    })
+  })
+  
+  observeEvent(input$treePredictButton, {
+    varTree <- createModelReact()
+    s = input$treePredictTable_rows_selected
+    if (length(s)) 
+    output$treePredictResult <- renderPrint({
+      predict(varTree, data()[s,])
+    })
+  })
+  
+  observeEvent(input$regPredictButton, {
+    varReg <- createRegModel()
+    s = input$regPredictTable_rows_selected
+    if (length(s)) 
+      output$regPredictResult <- renderPrint({
+        predict(varReg, data()[s,])
+      })
+  })
+  
+  output$treePredictTable <- renderDT(
+    data()
+  )
+  
+  output$regPredictTable <- renderDT({
+    data()
+  })
+  
+  # output$regPlot <- renderPlot({
+  #   regModel <- createRegModel()
+  # })
   
 }

@@ -2,17 +2,34 @@ library(shinydashboard)
 library(DT)
 
 dashboardPage(
-  dashboardHeader(),
+  skin = 'green',
+  dashboardHeader(title = "R-Statisticum"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Univariate Study", tabName = "univariate", icon = icon("dice-one")),
-      menuItem("Bivariate Study", tabName = "bivariate", icon = icon("dice-two")),
-      menuItem("Prediction", tabName = "prediction", icon = icon("dice-three")),
-      menuItem("General Study", tabName = "general", icon = icon("dice-four"))
+      menuItem("Choisir les données", tabName = "choose_data", icon = icon("database")),
+      menuItem("Etude Univarié", tabName = "univariate", icon = icon("dice-one")),
+      menuItem("Etude Bivarié", tabName = "bivariate", icon = icon("dice-two")),
+      menuItem("Prédiction", tabName = "prediction", icon = icon("dice-three")),
+      menuItem("Etude Générale", tabName = "general", icon = icon("dice-four")),
+      menuItem("A propos", tabName = "about", icon = icon("address-card"))
     )
   ),
   dashboardBody(
     tabItems(
+      tabItem(
+        tabName = "choose_data",
+            box(
+              width = 12,
+              fileInput("getFile", "Choisir le fichier CSV",
+                        accept = c(
+                          "text/csv",
+                          "text/comma-separated-values,text/plain",
+                          ".csv")
+              ),
+              tags$hr(),
+              checkboxInput("header", "Entete", TRUE)
+            ),
+      ),
       tabItem(
         tabName = "univariate",
               fluidRow(
@@ -69,20 +86,34 @@ dashboardPage(
                   uiOutput("predictionVariablesUI"),
                   uiOutput("targetVariableUI"),
                   checkboxInput("targetVar", "La variable cible est qualitative"),
+                  actionButton("learningButton", "Lancer l'entraînement"),
                 ),),
               fluidRow(
                 column(width = 12,
                        tabsetPanel(type = "tabs",
-                                   tabPanel("Information du model", column(
-                                     
+                                   
+                                   tabPanel("Arbre", column(
                                      width=12,
+                                     plotOutput("treePlot"),
+                                     h3("Prédire des individus"),
+                                     h5("Selectionner les individus et cliquer sur le bouton pour faire la prédiction:"),
+                                     DTOutput("treePredictTable"),
+                                     actionButton("treePredictButton", "Faire la prédiction"),
+                                     verbatimTextOutput("treePredictResult"),
+                                     h3("Résume du modèle"),
+                                     verbatimTextOutput("treeText"),
                                      
                                    )),
-                                   tabPanel("Summary", column(
+                                   tabPanel("Regression", column(
                                      width=12,
-                                     
+                                     h3("Résume du modèle"),
+                                     verbatimTextOutput("regText"),
+                                     h3("Prédire des individus"),
+                                     h5("Selectionner les individus et cliquer sur le bouton pour faire la prédiction:"),
+                                     DTOutput("regPredictTable"),
+                                     actionButton("regPredictButton", "Faire la prédiction"),
+                                     verbatimTextOutput("regPredictResult"),
                                    )),
-                                   tabPanel("Table", )
                        ))
               )
               
@@ -102,6 +133,21 @@ dashboardPage(
                                       uiOutput("corrType"),
                                       plotOutput("heatMap")),
                  ))
+        )
+      ),
+      tabItem(
+        tabName = 'about',
+        box(
+          width = 12,
+          h3("R-Statisticum: Outils d'exploration des données."),
+          p("Cette application a été développé dans le cadre de projet du module 'Accompagnement', master AMSD de l'université de Paris."),
+          strong("- BENABED Youcef"),
+          br(),
+          strong("- KOURTA Smail"),
+          br(),
+          strong("- MOUACI Youcef"),br(),
+          br(),
+          a("Lien vers Github", href="https://github.com/skourta/r-statisticum")
         )
       )
     ),
